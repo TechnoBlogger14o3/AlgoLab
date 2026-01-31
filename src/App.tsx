@@ -421,8 +421,8 @@ function App() {
               onReset={handleReset}
               onSpeedChange={setSpeed}
               onGenerateNew={generateNewArray}
-              arraySize={arraySize}
-              onArraySizeChange={setArraySize}
+              arraySize={20}
+              onArraySizeChange={() => {}}
               arrayType={arrayType}
               onArrayTypeChange={setArrayType}
             />
