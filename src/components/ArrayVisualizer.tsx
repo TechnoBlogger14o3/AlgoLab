@@ -111,7 +111,7 @@ export default function ArrayVisualizer({
       )}
       
       {/* Array visualization */}
-      <div className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-xl h-[350px] p-3 border border-gray-700/50 shadow-2xl overflow-x-auto overflow-y-hidden">
+      <div className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-xl h-[150px] p-3 border border-gray-700/50 shadow-2xl overflow-x-auto overflow-y-hidden">
         <div className="flex items-end justify-center gap-2 h-full min-w-max" style={{ gap: barGap }}>
           {array.map((value, index) => {
             const height = (value / maxValue) * 100;

@@ -78,21 +78,6 @@ export default function Controls({
 
         {!hideArrayControls && (
           <>
-            {/* Array Size Control */}
-            <div className="flex items-center gap-3 bg-gray-700/50 px-4 py-2 rounded-lg border border-gray-600/50">
-              <label className="text-gray-300 font-medium text-sm">Size:</label>
-              <input
-                type="range"
-                min="5"
-                max="40"
-                value={arraySize}
-                onChange={(e) => onArraySizeChange(Number(e.target.value))}
-                className="w-32 accent-blue-500 cursor-pointer"
-                disabled={isRunning && !isPaused}
-              />
-              <span className="text-white text-sm font-semibold w-10 bg-gray-600/50 px-2 py-1 rounded text-center">{arraySize}</span>
-            </div>
-
             {/* Array Type Selection */}
             <div className="flex items-center gap-3 bg-gray-700/50 px-4 py-2 rounded-lg border border-gray-600/50">
               <label className="text-gray-300 font-medium text-sm">Type:</label>

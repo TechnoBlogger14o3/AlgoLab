@@ -43,7 +43,7 @@ function App() {
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [isPaused, setIsPaused] = useState<boolean>(false);
   const [speed, setSpeed] = useState<number>(500);
-  const [arraySize, setArraySize] = useState<number>(20);
+  const [arraySize] = useState<number>(20); // Fixed at 20
   const [arrayType, setArrayType] = useState<ArrayType>('random');
   const [language, setLanguage] = useState<Language>('javascript');
   const [currentLine, setCurrentLine] = useState<number>(-1);
@@ -56,7 +56,7 @@ function App() {
   const [startTime, setStartTime] = useState<number | null>(null);
   const [isELectureOpen, setIsELectureOpen] = useState<boolean>(false);
   const [isComparisonOpen, setIsComparisonOpen] = useState<boolean>(false);
-  const [zoomScale, setZoomScale] = useState<number>(1.0);
+  const zoomScale = 1.0; // Fixed at 1.0x
   const [visualizationState, setVisualizationState] = useState<AlgorithmState>({
     array: [],
     comparing: [],
@@ -339,7 +339,6 @@ function App() {
               >
                 🔀 Compare
               </button>
-              <ZoomControls scale={zoomScale} onScaleChange={setZoomScale} />
             </div>
 
             <AlgorithmSelector
