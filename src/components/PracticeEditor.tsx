@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
+import Editor from '@monaco-editor/react';
 import { motion } from 'framer-motion';
 import { Language, AlgorithmType } from '../types';
+import * as monaco from 'monaco-editor';
 
 interface PracticeEditorProps {
   algorithmType?: AlgorithmType;
@@ -20,39 +22,65 @@ export default function PracticeEditor({
   language = 'javascript'
 }: PracticeEditorProps) {
   const [code, setCode] = useState<string>(initialCode);
-  const [lines, setLines] = useState<string[]>([]);
-  const codeContainerRef = useRef<HTMLDivElement>(null);
-  const activeLineRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
 
   useEffect(() => {
     setCode(initialCode);
   }, [initialCode]);
 
   useEffect(() => {
-    const codeLines = code.split('\n');
-    setLines(codeLines);
     if (onCodeChange) {
       onCodeChange(code);
     }
   }, [code, onCodeChange]);
 
-  // Auto-scroll to active line
+  // Highlight current line
   useEffect(() => {
-    if (currentLine >= 0 && activeLineRef.current && codeContainerRef.current) {
-      const container = codeContainerRef.current;
-      const activeElement = activeLineRef.current;
-      const containerRect = container.getBoundingClientRect();
-      const elementRect = activeElement.getBoundingClientRect();
-      
-      if (elementRect.top < containerRect.top || elementRect.bottom > containerRect.bottom) {
-        activeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (editorRef.current && currentLine >= 0) {
+      const editor = editorRef.current;
+      const model = editor.getModel();
+      if (model) {
+        const lineCount = model.getLineCount();
+        if (currentLine < lineCount) {
+          // Remove previous decorations
+          editor.deltaDecorations([], []);
+          
+          // Add new decoration for current line
+          const range = new monaco.Range(currentLine + 1, 1, currentLine + 1, 1);
+          editor.deltaDecorations([], [{
+            range: range,
+            options: {
+              isWholeLine: true,
+              className: 'bg-blue-600/30',
+              glyphMarginClassName: 'bg-blue-400',
+            }
+          }]);
+          
+          // Scroll to line
+          editor.revealLineInCenter(currentLine + 1);
+        }
       }
     }
   }, [currentLine]);
 
-  const handleCodeChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setCode(e.target.value);
+  const handleEditorDidMount = (editor: monaco.editor.IStandaloneCodeEditor) => {
+    editorRef.current = editor;
+    
+    // Configure editor
+    editor.updateOptions({
+      fontSize: 14,
+      minimap: { enabled: false },
+      scrollBeyondLastLine: false,
+      automaticLayout: true,
+      lineNumbers: 'on',
+      roundedSelection: false,
+      cursorStyle: 'line',
+      wordWrap: 'on',
+    });
+  };
+
+  const handleEditorChange = (value: string | undefined) => {
+    setCode(value || '');
   };
 
   const getLanguageLabel = (lang: string): string => {
@@ -64,6 +92,28 @@ export default function PracticeEditor({
     };
     return labels[lang] || lang;
   };
+
+  const getMonacoLanguage = (lang: Language): string => {
+    const langMap: Record<Language, string> = {
+      javascript: 'javascript',
+      python: 'python',
+      java: 'java',
+      cpp: 'cpp'
+    };
+    return langMap[lang] || 'javascript';
+  };
+
+  const defaultCode = `// Write your ${algorithmType === 'sort' ? 'sorting' : 'search'} algorithm here
+// Use 'arr' as the array variable
+// For sorting: Modify 'arr' in place or return sorted array
+// For search: Use 'target' variable, return index or -1
+// Example variables available: arr, array, target, n, length
+// Helper: swap(i, j) function available for swapping elements
+
+function ${algorithmType === 'sort' ? 'sort' : 'search'}(arr, target) {
+  // Your code here
+  return arr;
+}`;
 
   return (
     <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-xl border border-gray-700/50 shadow-xl h-full flex flex-col overflow-hidden">
@@ -90,75 +140,29 @@ export default function PracticeEditor({
         </div>
       </div>
 
-      {/* Code editor */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Line numbers and code display */}
-        <div 
-          ref={codeContainerRef}
-          className="flex-1 overflow-auto p-2 font-mono text-xs relative"
-        >
-          <div className="relative">
-            {lines.map((line, index) => {
-              const isActive = currentLine === index;
-              const isEmpty = line.trim() === '';
-              
-              return (
-                <motion.div
-                  key={index}
-                  ref={isActive ? activeLineRef : undefined}
-                  className={`flex items-start gap-2 py-0.5 px-2 rounded transition-colors ${
-                    isActive
-                      ? 'bg-blue-600/30 border-l-4 border-blue-400 shadow-lg shadow-blue-500/20'
-                      : 'hover:bg-gray-800/50'
-                  }`}
-                  initial={isActive ? { x: -5 } : {}}
-                  animate={isActive ? {
-                    x: 0,
-                    backgroundColor: 'rgba(37, 99, 235, 0.3)',
-                  } : { x: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  {/* Line number */}
-                  <span className={`text-xs select-none min-w-[2rem] text-right font-mono ${
-                    isActive ? 'text-blue-400 font-bold' : 'text-gray-500'
-                  }`}>
-                    {index + 1}
-                  </span>
-                  {/* Code line */}
-                  <pre className={`flex-1 overflow-x-auto leading-tight ${
-                    isEmpty ? 'text-transparent' : isActive ? 'text-blue-100 font-semibold' : 'text-gray-300'
-                  }`}>
-                    <code className="whitespace-pre">{line || ' '}</code>
-                  </pre>
-                </motion.div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Textarea for editing (hidden but functional) */}
-        <textarea
-          ref={textareaRef}
-          value={code}
-          onChange={handleCodeChange}
-          className="absolute opacity-0 pointer-events-none"
-          style={{ width: '1px', height: '1px' }}
-        />
-      </div>
-
-      {/* Editor textarea */}
-      <div className="border-t border-gray-700/50 p-2">
-        <textarea
-          value={code}
-          onChange={handleCodeChange}
-          placeholder={`// Write your ${algorithmType === 'sort' ? 'sorting' : 'search'} algorithm here
-// Use 'arr' as the array variable
-// For sorting: Modify 'arr' in place or return sorted array
-// For search: Use 'target' variable, return index or -1
-// Example variables available: arr, array, target, n, length
-// Helper: swap(i, j) function available for swapping elements`}
-          className="w-full h-40 bg-gray-900 text-gray-300 font-mono text-xs p-3 rounded-lg border border-gray-700 focus:border-blue-500 focus:outline-none resize-none"
-          spellCheck={false}
+      {/* Monaco Editor */}
+      <div className="flex-1 overflow-hidden">
+        <Editor
+          height="100%"
+          language={getMonacoLanguage(language)}
+          value={code || defaultCode}
+          onChange={handleEditorChange}
+          onMount={handleEditorDidMount}
+          theme="vs-dark"
+          options={{
+            fontSize: 14,
+            minimap: { enabled: false },
+            scrollBeyondLastLine: false,
+            automaticLayout: true,
+            lineNumbers: 'on',
+            roundedSelection: false,
+            cursorStyle: 'line',
+            wordWrap: 'on',
+            tabSize: 2,
+            insertSpaces: true,
+            formatOnPaste: true,
+            formatOnType: true,
+          }}
         />
       </div>
     </div>

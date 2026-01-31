@@ -659,6 +659,208 @@ void heapify(int arr[], int n, int i) {
     }
     return -1;
 }`
+  },
+  bfs: {
+    javascript: `function bfs(graph, startNode) {
+  const queue = [startNode];
+  const visited = [];
+  const parent = {};
+  const level = { [startNode]: 0 };
+  
+  while (queue.length > 0) {
+    const current = queue.shift();
+    
+    if (!visited.includes(current)) {
+      visited.push(current);
+      
+      const neighbors = graph[current] || [];
+      for (const neighbor of neighbors) {
+        if (!visited.includes(neighbor) && !queue.includes(neighbor)) {
+          queue.push(neighbor);
+          parent[neighbor] = current;
+          level[neighbor] = level[current] + 1;
+        }
+      }
+    }
+  }
+  
+  return visited;
+}`,
+    python: `def bfs(graph, start_node):
+    queue = [start_node]
+    visited = []
+    parent = {}
+    level = {start_node: 0}
+    
+    while queue:
+        current = queue.pop(0)
+        
+        if current not in visited:
+            visited.append(current)
+            
+            neighbors = graph.get(current, [])
+            for neighbor in neighbors:
+                if neighbor not in visited and neighbor not in queue:
+                    queue.append(neighbor)
+                    parent[neighbor] = current
+                    level[neighbor] = level[current] + 1
+    
+    return visited`,
+    java: `public static List<Integer> bfs(Map<Integer, List<Integer>> graph, int startNode) {
+    Queue<Integer> queue = new LinkedList<>();
+    List<Integer> visited = new ArrayList<>();
+    Map<Integer, Integer> parent = new HashMap<>();
+    Map<Integer, Integer> level = new HashMap<>();
+    
+    queue.offer(startNode);
+    level.put(startNode, 0);
+    
+    while (!queue.isEmpty()) {
+        int current = queue.poll();
+        
+        if (!visited.contains(current)) {
+            visited.add(current);
+            
+            List<Integer> neighbors = graph.getOrDefault(current, new ArrayList<>());
+            for (int neighbor : neighbors) {
+                if (!visited.contains(neighbor) && !queue.contains(neighbor)) {
+                    queue.offer(neighbor);
+                    parent.put(neighbor, current);
+                    level.put(neighbor, level.get(current) + 1);
+                }
+            }
+        }
+    }
+    
+    return visited;
+}`,
+    cpp: `vector<int> bfs(map<int, vector<int>> graph, int startNode) {
+    queue<int> q;
+    vector<int> visited;
+    map<int, int> parent;
+    map<int, int> level;
+    
+    q.push(startNode);
+    level[startNode] = 0;
+    
+    while (!q.empty()) {
+        int current = q.front();
+        q.pop();
+        
+        if (find(visited.begin(), visited.end(), current) == visited.end()) {
+            visited.push_back(current);
+            
+            vector<int> neighbors = graph[current];
+            for (int neighbor : neighbors) {
+                if (find(visited.begin(), visited.end(), neighbor) == visited.end() &&
+                    find(queue.begin(), queue.end(), neighbor) == queue.end()) {
+                    q.push(neighbor);
+                    parent[neighbor] = current;
+                    level[neighbor] = level[current] + 1;
+                }
+            }
+        }
+    }
+    
+    return visited;
+}`
+  },
+  dfs: {
+    javascript: `function dfs(graph, startNode) {
+  const stack = [startNode];
+  const visited = [];
+  const parent = {};
+  
+  while (stack.length > 0) {
+    const current = stack.pop();
+    
+    if (!visited.includes(current)) {
+      visited.push(current);
+      
+      const neighbors = graph[current] || [];
+      for (let i = neighbors.length - 1; i >= 0; i--) {
+        const neighbor = neighbors[i];
+        if (!visited.includes(neighbor) && !stack.includes(neighbor)) {
+          stack.push(neighbor);
+          parent[neighbor] = current;
+        }
+      }
+    }
+  }
+  
+  return visited;
+}`,
+    python: `def dfs(graph, start_node):
+    stack = [start_node]
+    visited = []
+    parent = {}
+    
+    while stack:
+        current = stack.pop()
+        
+        if current not in visited:
+            visited.append(current)
+            
+            neighbors = graph.get(current, [])
+            for neighbor in reversed(neighbors):
+                if neighbor not in visited and neighbor not in stack:
+                    stack.append(neighbor)
+                    parent[neighbor] = current
+    
+    return visited`,
+    java: `public static List<Integer> dfs(Map<Integer, List<Integer>> graph, int startNode) {
+    Stack<Integer> stack = new Stack<>();
+    List<Integer> visited = new ArrayList<>();
+    Map<Integer, Integer> parent = new HashMap<>();
+    
+    stack.push(startNode);
+    
+    while (!stack.isEmpty()) {
+        int current = stack.pop();
+        
+        if (!visited.contains(current)) {
+            visited.add(current);
+            
+            List<Integer> neighbors = graph.getOrDefault(current, new ArrayList<>());
+            Collections.reverse(neighbors);
+            for (int neighbor : neighbors) {
+                if (!visited.contains(neighbor) && !stack.contains(neighbor)) {
+                    stack.push(neighbor);
+                    parent.put(neighbor, current);
+                }
+            }
+        }
+    }
+    
+    return visited;
+}`,
+    cpp: `vector<int> dfs(map<int, vector<int>> graph, int startNode) {
+    stack<int> s;
+    vector<int> visited;
+    map<int, int> parent;
+    
+    s.push(startNode);
+    
+    while (!s.empty()) {
+        int current = s.top();
+        s.pop();
+        
+        if (find(visited.begin(), visited.end(), current) == visited.end()) {
+            visited.push_back(current);
+            
+            vector<int> neighbors = graph[current];
+            reverse(neighbors.begin(), neighbors.end());
+            for (int neighbor : neighbors) {
+                if (find(visited.begin(), visited.end(), neighbor) == visited.end()) {
+                    s.push(neighbor);
+                    parent[neighbor] = current;
+                }
+            }
+        }
+    }
+    
+    return visited;
+}`
   }
 };
 

@@ -58,22 +58,50 @@ export default function Controls({
           </button>
         </div>
 
-        {/* Speed Control */}
+        {/* Speed Control with Presets */}
         <div className="flex items-center gap-3 bg-gray-700/50 px-4 py-2 rounded-lg border border-gray-600/50">
           <label className="text-gray-300 font-medium text-sm">Speed:</label>
-          <input
-            type="range"
-            min="50"
-            max="2000"
-            step="50"
-            value={speed}
-            onChange={(e) => onSpeedChange(Number(e.target.value))}
-            className="w-40 accent-blue-500 cursor-pointer"
-            disabled={isRunning && !isPaused}
-          />
-          <span className="text-white text-sm font-semibold w-20 bg-gray-600/50 px-2 py-1 rounded text-center">
-            {speed < 1000 ? `${speed}ms` : `${(speed / 1000).toFixed(1)}s`}
-          </span>
+          <div className="flex items-center gap-2">
+            {/* Speed Presets */}
+            <div className="flex gap-1">
+              {[
+                { label: '0.5x', value: 1000 },
+                { label: '1x', value: 500 },
+                { label: '2x', value: 250 },
+                { label: '4x', value: 125 },
+                { label: '8x', value: 62.5 },
+                { label: '16x', value: 31.25 },
+              ].map((preset) => (
+                <button
+                  key={preset.label}
+                  onClick={() => onSpeedChange(preset.value)}
+                  disabled={isRunning && !isPaused}
+                  className={`px-2 py-1 text-xs font-semibold rounded transition-all ${
+                    Math.abs(speed - preset.value) < 10
+                      ? 'bg-blue-600 text-white shadow-lg'
+                      : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  title={`${preset.label} (${preset.value}ms)`}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+            {/* Custom Speed Slider */}
+            <input
+              type="range"
+              min="31"
+              max="2000"
+              step="31"
+              value={speed}
+              onChange={(e) => onSpeedChange(Number(e.target.value))}
+              className="w-32 accent-blue-500 cursor-pointer"
+              disabled={isRunning && !isPaused}
+            />
+            <span className="text-white text-sm font-semibold w-20 bg-gray-600/50 px-2 py-1 rounded text-center">
+              {speed < 1000 ? `${speed}ms` : `${(speed / 1000).toFixed(1)}s`}
+            </span>
+          </div>
         </div>
 
         {!hideArrayControls && (

@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import ArrayVisualizer from './components/ArrayVisualizer';
+import GraphVisualizer from './components/GraphVisualizer';
+import QueueStackVisualizer from './components/QueueStackVisualizer';
 import Controls from './components/Controls';
 import AlgorithmSelector from './components/AlgorithmSelector';
 import CodeDisplay from './components/CodeDisplay';
@@ -20,6 +22,9 @@ import { shellSort } from './algorithms/shellSort';
 import { countingSort } from './algorithms/countingSort';
 import { linearSearch } from './algorithms/linearSearch';
 import { binarySearch } from './algorithms/binarySearch';
+import { bfs } from './algorithms/bfs';
+import { dfs } from './algorithms/dfs';
+import { generateRandomGraph } from './utils/graphUtils';
 import { Algorithm, AlgorithmState, ArrayType, Language, AlgorithmType } from './types';
 import './App.css';
 
@@ -34,11 +39,14 @@ const ALGORITHMS: Algorithm[] = [
   { id: 'counting', name: 'Counting Sort', generator: countingSort, type: 'sort' },
   { id: 'linear', name: 'Linear Search', generator: linearSearch, type: 'search' },
   { id: 'binary', name: 'Binary Search', generator: binarySearch, type: 'search' },
+  { id: 'bfs', name: 'BFS (Breadth-First Search)', generator: bfs as (arr: number[] | import('./utils/graphUtils').Graph, target?: number | null) => Generator<AlgorithmState, number[], unknown>, type: 'graph' },
+  { id: 'dfs', name: 'DFS (Depth-First Search)', generator: dfs as (arr: number[] | import('./utils/graphUtils').Graph, target?: number | null) => Generator<AlgorithmState, number[], unknown>, type: 'graph' },
 ];
 
 function App() {
   const [view, setView] = useState<'algorithms' | 'practice'>('algorithms');
   const [array, setArray] = useState<number[]>([]);
+  const [graph, setGraph] = useState<import('./utils/graphUtils').Graph>({});
   const [selectedAlgorithm, setSelectedAlgorithm] = useState<string>('bubble');
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [isPaused, setIsPaused] = useState<boolean>(false);
@@ -84,6 +92,32 @@ function App() {
 
   const generateNewArray = () => {
     const selectedAlgo = ALGORITHMS.find((algo) => algo.id === selectedAlgorithm);
+    
+    // Handle graph algorithms
+    if (selectedAlgo?.type === 'graph') {
+      const newGraph = generateRandomGraph(8);
+      setGraph(newGraph);
+      previousArrayRef.current = [];
+      setVisualizationState({
+        array: [],
+        comparing: [],
+        sorted: [],
+        graph: newGraph,
+        queue: [],
+        stack: [],
+        visited: [],
+        current: null,
+        checking: null,
+        parent: {},
+        level: {},
+        path: [],
+        message: 'Graph generated. Click Play to start visualization.',
+        currentLine: -1,
+      });
+      setCurrentLine(-1);
+      resetVisualization();
+      return;
+    }
     
     // Handle array-based algorithms
     let newArray: number[];
@@ -141,7 +175,7 @@ function App() {
     resetVisualization();
   };
 
-  // Generate initial array
+  // Generate initial array/graph
   useEffect(() => {
     generateNewArray();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -175,8 +209,12 @@ function App() {
     const selectedAlgo = ALGORITHMS.find((algo) => algo.id === selectedAlgorithm);
     if (!selectedAlgo) return;
 
+    // For graph algorithms, pass graph
+    if (selectedAlgo.type === 'graph') {
+      generatorRef.current = selectedAlgo.generator(graph, null);
+    }
     // For search algorithms, pass target value
-    if (selectedAlgo.type === 'search') {
+    else if (selectedAlgo.type === 'search') {
       generatorRef.current = selectedAlgo.generator([...array], searchTarget);
     } 
     // For sorting algorithms, use array
@@ -203,33 +241,40 @@ function App() {
         return;
       }
 
-      // Handle practice mode - ensure array is always present
-      const newArray = (result.value?.array && Array.isArray(result.value.array)) 
-        ? result.value.array 
-        : (result.value?.arr && Array.isArray(result.value.arr))
-        ? result.value.arr
-        : (visualizationState.array && visualizationState.array.length > 0)
-        ? visualizationState.array
-        : array;
+      // Handle practice mode - ensure array is always present (skip for graph algorithms)
+      const selectedAlgo = ALGORITHMS.find((algo) => algo.id === selectedAlgorithm);
+      const isGraphAlgo = selectedAlgo?.type === 'graph';
       
-      // Detect swaps by comparing with previous array
+      let newArray: number[] = [];
       const swapping: number[][] = [];
-      if (previousArrayRef.current.length > 0 && newArray.length === previousArrayRef.current.length) {
-        for (let i = 0; i < newArray.length; i++) {
-          if (newArray[i] !== previousArrayRef.current[i]) {
-            // Find where this value came from
-            for (let j = 0; j < previousArrayRef.current.length; j++) {
-              if (previousArrayRef.current[j] === newArray[i] && j !== i && 
-                  newArray[j] === previousArrayRef.current[i]) {
-                // This is a swap
-                swapping.push([j, i]);
-                break;
+      
+      if (!isGraphAlgo) {
+        newArray = (result.value?.array && Array.isArray(result.value.array)) 
+          ? result.value.array 
+          : (result.value?.arr && Array.isArray(result.value.arr))
+          ? result.value.arr
+          : (visualizationState.array && visualizationState.array.length > 0)
+          ? visualizationState.array
+          : array;
+        
+        // Detect swaps by comparing with previous array
+        if (previousArrayRef.current.length > 0 && newArray.length === previousArrayRef.current.length) {
+          for (let i = 0; i < newArray.length; i++) {
+            if (newArray[i] !== previousArrayRef.current[i]) {
+              // Find where this value came from
+              for (let j = 0; j < previousArrayRef.current.length; j++) {
+                if (previousArrayRef.current[j] === newArray[i] && j !== i && 
+                    newArray[j] === previousArrayRef.current[i]) {
+                  // This is a swap
+                  swapping.push([j, i]);
+                  break;
+                }
               }
             }
           }
+          // Update previous array
+          previousArrayRef.current = [...newArray];
         }
-        // Update previous array
-        previousArrayRef.current = [...newArray];
       }
 
       const newCurrentLine = result.value.currentLine !== undefined ? result.value.currentLine : currentLine;
@@ -256,6 +301,17 @@ function App() {
         right: result.value.right !== undefined ? result.value.right : -1,
         mid: result.value.mid !== undefined ? result.value.mid : -1,
         currentIndex: result.value.currentIndex !== undefined ? result.value.currentIndex : -1,
+        // Graph algorithm states
+        graph: result.value.graph || graph,
+        queue: result.value.queue || [],
+        stack: result.value.stack || [],
+        visited: result.value.visited || [],
+        current: result.value.current !== undefined ? result.value.current : null,
+        checking: result.value.checking !== undefined ? result.value.checking : null,
+        parent: result.value.parent || {},
+        level: result.value.level || {},
+        path: result.value.path || [],
+        message: result.value.message || '',
       });
     }, speed);
   };
@@ -387,9 +443,57 @@ function App() {
               algorithmName={ALGORITHMS.find(a => a.id === selectedAlgorithm)?.name || ''}
             />
 
-            {/* Array Visualizer */}
-            <div className="w-full" style={{ transform: `scale(${zoomScale})`, transformOrigin: 'top center' }}>
-              <ArrayVisualizer
+            {/* Graph Algorithm Visualization */}
+            {ALGORITHMS.find(algo => algo.id === selectedAlgorithm)?.type === 'graph' && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                {/* Graph Visualization */}
+                <div className="lg:col-span-2">
+                  <GraphVisualizer
+                    graph={visualizationState.graph || graph}
+                    visited={visualizationState.visited || []}
+                    queue={visualizationState.queue || []}
+                    current={visualizationState.current !== undefined ? visualizationState.current : null}
+                    checking={visualizationState.checking !== undefined ? visualizationState.checking : null}
+                    parent={visualizationState.parent || {}}
+                    level={visualizationState.level || {}}
+                    path={visualizationState.path || []}
+                    message={visualizationState.message || ''}
+                    startNode={0}
+                  />
+                </div>
+                
+                {/* Queue/Stack Visualizers */}
+                <div className="space-y-4">
+                  {selectedAlgorithm === 'bfs' && (
+                    <QueueStackVisualizer
+                      items={visualizationState.queue || []}
+                      type="queue"
+                      label="Queue"
+                      maxItems={10}
+                    />
+                  )}
+                  {selectedAlgorithm === 'dfs' && (
+                    <QueueStackVisualizer
+                      items={visualizationState.stack || []}
+                      type="stack"
+                      label="Stack"
+                      maxItems={10}
+                    />
+                  )}
+                  <QueueStackVisualizer
+                    items={visualizationState.visited || []}
+                    type="queue"
+                    label="Visited"
+                    maxItems={10}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Array Visualizer (for sort/search algorithms) */}
+            {ALGORITHMS.find(algo => algo.id === selectedAlgorithm)?.type !== 'graph' && (
+              <div className="w-full" style={{ transform: `scale(${zoomScale})`, transformOrigin: 'top center' }}>
+                <ArrayVisualizer
                 array={visualizationState.array.length > 0 ? visualizationState.array : array}
                 comparing={visualizationState.comparing}
                 sorted={visualizationState.sorted}
@@ -410,7 +514,8 @@ function App() {
                 mid={visualizationState.mid}
                 currentIndex={visualizationState.currentIndex}
               />
-            </div>
+              </div>
+            )}
 
             <Controls
               isRunning={isRunning}
