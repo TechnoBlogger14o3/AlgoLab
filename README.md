@@ -28,13 +28,17 @@
 
 ## 🎬 Demo
 
-![AlgoLab Demo](src/screenshots/1.png)
+<div align="center">
+
+![AlgoLab Demo](./src/screenshots/1.png)
 
 *Visualize algorithms step-by-step with synchronized code animation*
 
-![Practice Mode](src/screenshots/2.png)
+![Practice Mode](./src/screenshots/2.png)
 
 *Write and test your own algorithms in Practice Mode*
+
+</div>
 
 ## 🚀 Installation
 
