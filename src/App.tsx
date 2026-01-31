@@ -4,6 +4,10 @@ import Controls from './components/Controls';
 import AlgorithmSelector from './components/AlgorithmSelector';
 import CodeDisplay from './components/CodeDisplay';
 import PracticeEditor from './components/PracticeEditor';
+import StatisticsPanel from './components/StatisticsPanel';
+import ELectureMode from './components/ELectureMode';
+import ComparisonMode from './components/ComparisonMode';
+import ZoomControls from './components/ZoomControls';
 import { generateRandomArray, generateSortedArray, generateReversedArray, generateNearlySortedArray } from './utils/arrayUtils';
 import { createTrackedAlgorithm } from './utils/codeExecutor';
 import { bubbleSort } from './algorithms/bubbleSort';
@@ -47,6 +51,12 @@ function App() {
   const [practiceCode, setPracticeCode] = useState<string>('');
   const [practiceLanguage, setPracticeLanguage] = useState<Language>('javascript');
   const [practiceAlgorithmType, setPracticeAlgorithmType] = useState<AlgorithmType>('sort');
+  // Phase 2 features
+  const [stepCount, setStepCount] = useState<number>(0);
+  const [startTime, setStartTime] = useState<number | null>(null);
+  const [isELectureOpen, setIsELectureOpen] = useState<boolean>(false);
+  const [isComparisonOpen, setIsComparisonOpen] = useState<boolean>(false);
+  const [zoomScale, setZoomScale] = useState<number>(1.0);
   const [visualizationState, setVisualizationState] = useState<AlgorithmState>({
     array: [],
     comparing: [],
@@ -149,6 +159,8 @@ function App() {
       previousArrayRef.current = [...array];
     }
     setCurrentLine(-1);
+    setStepCount(0);
+    setStartTime(null);
   };
 
   const startVisualization = () => {
@@ -174,6 +186,8 @@ function App() {
     
     setIsRunning(true);
     setIsPaused(false);
+    setStartTime(Date.now());
+    setStepCount(0);
     continueVisualization();
   };
 
@@ -220,6 +234,7 @@ function App() {
 
       const newCurrentLine = result.value.currentLine !== undefined ? result.value.currentLine : currentLine;
       setCurrentLine(newCurrentLine);
+      setStepCount(prev => prev + 1);
       
       setVisualizationState({
         array: newArray,
@@ -310,6 +325,23 @@ function App() {
 
         {view === 'algorithms' ? (
           <div className="space-y-3 w-full">
+            {/* Phase 2: Action Buttons */}
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={() => setIsELectureOpen(true)}
+                className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white font-semibold rounded-lg shadow-lg hover:from-purple-600 hover:to-pink-700 transition-all"
+              >
+                📚 e-Lecture
+              </button>
+              <button
+                onClick={() => setIsComparisonOpen(true)}
+                className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-blue-600 text-white font-semibold rounded-lg shadow-lg hover:from-indigo-600 hover:to-blue-700 transition-all"
+              >
+                🔀 Compare
+              </button>
+              <ZoomControls scale={zoomScale} onScaleChange={setZoomScale} />
+            </div>
+
             <AlgorithmSelector
               selectedAlgorithm={selectedAlgorithm}
               onAlgorithmChange={setSelectedAlgorithm}
@@ -348,8 +380,16 @@ function App() {
               </div>
             )}
 
+            {/* Statistics Panel */}
+            <StatisticsPanel
+              visualizationState={visualizationState}
+              stepCount={stepCount}
+              startTime={startTime}
+              algorithmName={ALGORITHMS.find(a => a.id === selectedAlgorithm)?.name || ''}
+            />
+
             {/* Array Visualizer */}
-            <div className="w-full">
+            <div className="w-full" style={{ transform: `scale(${zoomScale})`, transformOrigin: 'top center' }}>
               <ArrayVisualizer
                 array={visualizationState.array.length > 0 ? visualizationState.array : array}
                 comparing={visualizationState.comparing}
@@ -495,6 +535,23 @@ function App() {
               onArrayTypeChange={setArrayType}
             />
           </div>
+        )}
+
+        {/* Phase 2: e-Lecture Mode */}
+        <ELectureMode
+          algorithmId={selectedAlgorithm}
+          algorithmName={ALGORITHMS.find(a => a.id === selectedAlgorithm)?.name || ''}
+          isOpen={isELectureOpen}
+          onClose={() => setIsELectureOpen(false)}
+        />
+
+        {/* Phase 2: Comparison Mode */}
+        {isComparisonOpen && (
+          <ComparisonMode
+            algorithms={ALGORITHMS}
+            array={array}
+            onClose={() => setIsComparisonOpen(false)}
+          />
         )}
       </div>
     </div>
