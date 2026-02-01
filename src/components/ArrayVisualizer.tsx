@@ -21,6 +21,11 @@ interface ArrayVisualizerProps {
   right?: number;
   mid?: number;
   currentIndex?: number;
+  stepCount?: number;
+  algorithmId?: string;
+  startTime?: number | null;
+  comparisons?: number;
+  totalSwaps?: number;
 }
 
 export default function ArrayVisualizer({ 
@@ -43,11 +48,42 @@ export default function ArrayVisualizer({
   right = -1,
   mid = -1,
   currentIndex = -1,
+  stepCount = 0,
+  algorithmId = '',
+  startTime = null,
+  comparisons = 0,
+  totalSwaps = undefined,
 }: ArrayVisualizerProps) {
   const maxValue = Math.max(...array, 1);
   
   // Use provided swapping array or detect from previous array
   const swapPairs = swapping.length > 0 ? swapping : [];
+  
+  // Get time complexity based on algorithm
+  const getTimeComplexity = (): string => {
+    const complexities: Record<string, string> = {
+      bubble: 'O(n²)',
+      quick: 'O(n log n)',
+      merge: 'O(n log n)',
+      insertion: 'O(n²)',
+      selection: 'O(n²)',
+      heap: 'O(n log n)',
+      shell: 'O(n log n)',
+      counting: 'O(n + k)',
+      linear: 'O(n)',
+      binary: 'O(log n)',
+    };
+    return complexities[algorithmId] || 'O(n²)';
+  };
+  
+  // Check if sorting is complete
+  const isSortingComplete = sorted.length === array.length && array.length > 0;
+  
+  // Calculate statistics for sorting completion
+  const swapCount = totalSwaps !== undefined ? totalSwaps : swapping.length;
+  const totalComparisons = comparisons || 0;
+  const timeElapsed = startTime ? Date.now() - startTime : 0;
+  const timeElapsedSeconds = (timeElapsed / 1000).toFixed(2);
   
   const getBarColor = (index: number): string => {
     if (found && array[index] === target) return 'from-green-400 to-emerald-600 shadow-green-500/50';
@@ -103,9 +139,55 @@ export default function ArrayVisualizer({
       {/* Target display for search algorithms */}
       {target !== null && (
         <div className="bg-gradient-to-r from-purple-900/80 via-purple-800/80 to-indigo-900/80 border border-purple-600/50 rounded-xl p-3 shadow-lg backdrop-blur-sm">
-          <div className="flex items-center gap-2">
-            <span className="text-white font-semibold text-sm">Target: {target}</span>
-            {found && <span className="text-green-400 text-sm">✓ Found!</span>}
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-white font-semibold text-sm">Target: {target}</span>
+              {found && (
+                <span className="text-green-400 text-sm font-semibold">✓ Found!</span>
+              )}
+            </div>
+            {found && (
+              <div className="flex items-center gap-3 text-xs">
+                <span className="text-gray-300">
+                  Steps: <span className="text-white font-semibold">{stepCount}</span>
+                </span>
+                <span className="text-gray-400">|</span>
+                <span className="text-gray-300">
+                  Complexity: <span className="text-yellow-400 font-mono font-semibold">{getTimeComplexity()}</span>
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      
+      {/* Sorting complete message */}
+      {isSortingComplete && target === null && (
+        <div className="bg-gradient-to-r from-green-900/80 via-emerald-800/80 to-teal-900/80 border border-green-600/50 rounded-xl p-4 shadow-lg backdrop-blur-sm">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-green-400 text-sm font-semibold">✓ Sorting Complete!</span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+            <div className="flex flex-col">
+              <span className="text-gray-400">Steps</span>
+              <span className="text-white font-semibold text-sm">{stepCount}</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-gray-400">Swaps</span>
+              <span className="text-white font-semibold text-sm">{swapCount}</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-gray-400">Comparisons</span>
+              <span className="text-white font-semibold text-sm">{totalComparisons}</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-gray-400">Time</span>
+              <span className="text-white font-semibold text-sm">{timeElapsedSeconds}s</span>
+            </div>
+          </div>
+          <div className="mt-2 pt-2 border-t border-green-700/50">
+            <span className="text-gray-400 text-xs">Time Complexity: </span>
+            <span className="text-yellow-400 font-mono font-semibold text-xs">{getTimeComplexity()}</span>
           </div>
         </div>
       )}

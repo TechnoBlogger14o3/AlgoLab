@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import Editor from '@monaco-editor/react';
-import { motion } from 'framer-motion';
+import Editor, { OnMount } from '@monaco-editor/react';
 import { Language, AlgorithmType } from '../types';
-import * as monaco from 'monaco-editor';
+import type * as monaco from 'monaco-editor';
 
 interface PracticeEditorProps {
   algorithmType?: AlgorithmType;
@@ -46,9 +45,13 @@ export default function PracticeEditor({
           editor.deltaDecorations([], []);
           
           // Add new decoration for current line
-          const range = new monaco.Range(currentLine + 1, 1, currentLine + 1, 1);
-          editor.deltaDecorations([], [{
-            range: range,
+          const decorations = editor.deltaDecorations([], [{
+            range: {
+              startLineNumber: currentLine + 1,
+              startColumn: 1,
+              endLineNumber: currentLine + 1,
+              endColumn: 1000,
+            },
             options: {
               isWholeLine: true,
               className: 'bg-blue-600/30',
@@ -63,7 +66,7 @@ export default function PracticeEditor({
     }
   }, [currentLine]);
 
-  const handleEditorDidMount = (editor: monaco.editor.IStandaloneCodeEditor) => {
+  const handleEditorDidMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
     
     // Configure editor

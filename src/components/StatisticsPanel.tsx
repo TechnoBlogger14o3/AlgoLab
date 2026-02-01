@@ -6,6 +6,8 @@ interface StatisticsPanelProps {
   stepCount: number;
   startTime: number | null;
   algorithmName: string;
+  totalComparisons?: number;
+  totalSwaps?: number;
 }
 
 export default function StatisticsPanel({
@@ -13,10 +15,12 @@ export default function StatisticsPanel({
   stepCount,
   startTime,
   algorithmName,
+  totalComparisons,
+  totalSwaps,
 }: StatisticsPanelProps) {
   // Calculate statistics
-  const comparisons = visualizationState.comparing?.length || 0;
-  const swaps = visualizationState.swapping?.length || 0;
+  const comparisons = totalComparisons !== undefined ? totalComparisons : (visualizationState.comparing?.length || 0);
+  const swaps = totalSwaps !== undefined ? totalSwaps : (visualizationState.swapping?.length || 0);
   const sortedCount = visualizationState.sorted?.length || 0;
   const arrayLength = visualizationState.array.length;
   const progress = arrayLength > 0 ? Math.round((sortedCount / arrayLength) * 100) : 0;
