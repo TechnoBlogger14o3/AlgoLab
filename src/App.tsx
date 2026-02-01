@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import ArrayVisualizer from './components/ArrayVisualizer';
+import LinkedListVisualizer from './components/LinkedListVisualizer';
+import BinaryTreeVisualizer from './components/BinaryTreeVisualizer';
 import Controls from './components/Controls';
 import AlgorithmSelector from './components/AlgorithmSelector';
 import CodeDisplay from './components/CodeDisplay';
@@ -18,7 +20,9 @@ import { shellSort } from './algorithms/shellSort';
 import { countingSort } from './algorithms/countingSort';
 import { linearSearch } from './algorithms/linearSearch';
 import { binarySearch } from './algorithms/binarySearch';
-import { Algorithm, AlgorithmState, ArrayType, Language, AlgorithmType } from './types';
+import { linkedListSearch, linkedListInsertAtHead, linkedListDelete, linkedListReverse } from './algorithms/linkedList';
+import { binaryTreeSearch, binaryTreeInorder, binaryTreePreorder, binaryTreePostorder } from './algorithms/binaryTree';
+import { Algorithm, AlgorithmState, ArrayType, Language, AlgorithmType, ListNode, TreeNode } from './types';
 import './App.css';
 
 const ALGORITHMS: Algorithm[] = [
@@ -32,6 +36,16 @@ const ALGORITHMS: Algorithm[] = [
   { id: 'counting', name: 'Counting Sort', generator: countingSort, type: 'sort' },
   { id: 'linear', name: 'Linear Search', generator: linearSearch, type: 'search' },
   { id: 'binary', name: 'Binary Search', generator: binarySearch, type: 'search' },
+  // Linked List Algorithms
+  { id: 'linkedlist-search', name: 'Linked List Search', generator: linkedListSearch, type: 'linkedlist' },
+  { id: 'linkedlist-insert', name: 'Linked List Insert', generator: linkedListInsertAtHead, type: 'linkedlist' },
+  { id: 'linkedlist-delete', name: 'Linked List Delete', generator: linkedListDelete, type: 'linkedlist' },
+  { id: 'linkedlist-reverse', name: 'Linked List Reverse', generator: linkedListReverse, type: 'linkedlist' },
+  // Binary Tree Algorithms
+  { id: 'tree-search', name: 'Binary Tree Search', generator: binaryTreeSearch, type: 'tree' },
+  { id: 'tree-inorder', name: 'Inorder Traversal', generator: binaryTreeInorder, type: 'tree' },
+  { id: 'tree-preorder', name: 'Preorder Traversal', generator: binaryTreePreorder, type: 'tree' },
+  { id: 'tree-postorder', name: 'Postorder Traversal', generator: binaryTreePostorder, type: 'tree' },
 ];
 
 function App() {
@@ -78,6 +92,37 @@ function App() {
   const generatorRef = useRef<Generator<AlgorithmState, number[], unknown> | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Helper to create linked list from array
+  const createLinkedListFromArray = (arr: number[]): ListNode[] => {
+    const nodes: ListNode[] = arr.map((val) => ({ value: val, next: null }));
+    for (let i = 0; i < nodes.length - 1; i++) {
+      nodes[i].next = nodes[i + 1];
+    }
+    return nodes;
+  };
+
+  // Helper to build BST from array
+  const buildBSTFromArray = (arr: number[]): TreeNode | null => {
+    if (arr.length === 0) return null;
+    
+    const sorted = [...arr].sort((a, b) => a - b);
+    
+    function buildTree(start: number, end: number): TreeNode | null {
+      if (start > end) return null;
+      
+      const mid = Math.floor((start + end) / 2);
+      const node: TreeNode = {
+        value: sorted[mid],
+        left: buildTree(start, mid - 1),
+        right: buildTree(mid + 1, end),
+      };
+      
+      return node;
+    }
+    
+    return buildTree(0, sorted.length - 1);
+  };
+
   const generateNewArray = () => {
     const selectedAlgo = ALGORITHMS.find((algo) => algo.id === selectedAlgorithm);
     
@@ -112,7 +157,9 @@ function App() {
     }
     
     previousArrayRef.current = [...newArray];
-    setVisualizationState({
+    
+    // Initialize data structures based on algorithm type
+    const initialState: AlgorithmState = {
       array: newArray,
       comparing: [],
       sorted: [],
@@ -132,7 +179,22 @@ function App() {
       right: -1,
       mid: -1,
       currentIndex: -1,
-    });
+    };
+
+    // Initialize Linked List structure
+    if (selectedAlgo?.type === 'linkedlist') {
+      const nodes = createLinkedListFromArray(newArray);
+      initialState.nodes = nodes as any;
+      initialState.head = 0;
+    }
+
+    // Initialize Binary Tree structure
+    if (selectedAlgo?.type === 'tree') {
+      const tree = buildBSTFromArray(newArray);
+      initialState.tree = tree as any;
+    }
+
+    setVisualizationState(initialState);
     setCurrentLine(-1);
     resetVisualization();
   };
@@ -143,6 +205,40 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [arraySize, arrayType, selectedAlgorithm]);
 
+  // Update visualization state when algorithm changes to show initial data structure
+  useEffect(() => {
+    const selectedAlgo = ALGORITHMS.find((algo) => algo.id === selectedAlgorithm);
+    if (!selectedAlgo || array.length === 0) return;
+
+    // Update Linked List structure when switching to linked list algorithm
+    if (selectedAlgo.type === 'linkedlist') {
+      const nodes = createLinkedListFromArray(array);
+      setVisualizationState((prev) => ({
+        ...prev,
+        nodes: nodes as any,
+        head: 0,
+        current: null,
+        comparing: [],
+        visited: [],
+        message: undefined,
+      }));
+    }
+
+    // Update Binary Tree structure when switching to tree algorithm
+    if (selectedAlgo.type === 'tree') {
+      const tree = buildBSTFromArray(array);
+      setVisualizationState((prev) => ({
+        ...prev,
+        tree: tree as any,
+        visited: [],
+        current: null,
+        comparing: [],
+        message: undefined,
+      }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAlgorithm]);
+
   const resetVisualization = () => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
@@ -151,6 +247,10 @@ function App() {
     setIsRunning(false);
     setIsPaused(false);
     generatorRef.current = null;
+    const selectedAlgo = ALGORITHMS.find((algo) => algo.id === selectedAlgorithm);
+    const isTreeAlgo = selectedAlgo?.type === 'tree';
+    const isLinkedListAlgo = selectedAlgo?.type === 'linkedlist';
+    
     if (array.length > 0) {
       previousArrayRef.current = [...array];
       // Reset visualization state to initial array
@@ -160,6 +260,13 @@ function App() {
         comparing: [],
         sorted: [],
         currentLine: -1,
+        // Reset tree-specific states only if not a tree algorithm
+        ...(isTreeAlgo ? {} : { tree: undefined }),
+        // Reset linked list-specific states only if not a linked list algorithm
+        ...(isLinkedListAlgo ? {} : { nodes: undefined, head: undefined }),
+        visited: [],
+        current: null,
+        message: undefined,
       }));
     }
     setCurrentLine(-1);
@@ -184,8 +291,28 @@ function App() {
     // For search algorithms, pass target value
     if (selectedAlgo.type === 'search') {
       generatorRef.current = selectedAlgo.generator([...array], searchTarget);
-    } 
-    // For sorting algorithms, use array
+    }
+    // For linked list insert, pass a value to insert
+    else if (selectedAlgo.type === 'linkedlist' && selectedAlgo.id === 'linkedlist-insert') {
+      const insertValue = Math.floor(Math.random() * 100) + 1;
+      generatorRef.current = selectedAlgo.generator([...array], insertValue);
+    }
+    // For linked list delete, pass a value to delete
+    else if (selectedAlgo.type === 'linkedlist' && selectedAlgo.id === 'linkedlist-delete') {
+      const deleteValue = array.length > 0 ? array[Math.floor(Math.random() * array.length)] : 50;
+      generatorRef.current = selectedAlgo.generator([...array], deleteValue);
+    }
+    // For linked list search, pass target
+    else if (selectedAlgo.type === 'linkedlist' && selectedAlgo.id === 'linkedlist-search') {
+      const searchValue = array.length > 0 ? array[Math.floor(Math.random() * array.length)] : 50;
+      generatorRef.current = selectedAlgo.generator([...array], searchValue);
+    }
+    // For tree search, pass target
+    else if (selectedAlgo.type === 'tree' && selectedAlgo.id === 'tree-search') {
+      const searchValue = array.length > 0 ? array[Math.floor(Math.random() * array.length)] : 50;
+      generatorRef.current = selectedAlgo.generator([...array], searchValue);
+    }
+    // For sorting algorithms and other operations, use array
     else {
       generatorRef.current = selectedAlgo.generator([...array]);
     }
@@ -196,6 +323,21 @@ function App() {
     setStepCount(0);
     setTotalComparisons(0);
     setTotalSwaps(0);
+    
+    // Initialize tree state for tree algorithms
+    const isTreeAlgo = selectedAlgo.type === 'tree';
+    if (isTreeAlgo) {
+      // Set initial tree state - will be updated by first yield
+      setVisualizationState((prev) => ({
+        ...prev,
+        array: [...array],
+        tree: undefined,
+        visited: [],
+        current: null,
+        comparing: [],
+      }));
+    }
+    
     continueVisualization();
   };
 
@@ -265,12 +407,17 @@ function App() {
       setCurrentLine(newCurrentLine);
       setStepCount(prev => prev + 1);
       
-      // Track cumulative comparisons and swaps
-      if (result.value.comparing && result.value.comparing.length > 0) {
-        setTotalComparisons(prev => prev + result.value.comparing!.length);
-      }
-      if (swapping.length > 0) {
-        setTotalSwaps(prev => prev + swapping.length);
+      // Track cumulative comparisons and swaps (only for array-based algorithms)
+      const selectedAlgo = ALGORITHMS.find((algo) => algo.id === selectedAlgorithm);
+      const isArrayBased = selectedAlgo?.type === 'sort' || selectedAlgo?.type === 'search';
+      
+      if (isArrayBased) {
+        if (result.value.comparing && result.value.comparing.length > 0) {
+          setTotalComparisons(prev => prev + result.value.comparing!.length);
+        }
+        if (swapping.length > 0) {
+          setTotalSwaps(prev => prev + swapping.length);
+        }
       }
       
       if (isExecutionState) {
@@ -318,6 +465,16 @@ function App() {
           right: result.value.right !== undefined ? result.value.right : -1,
           mid: result.value.mid !== undefined ? result.value.mid : -1,
           currentIndex: result.value.currentIndex !== undefined ? result.value.currentIndex : -1,
+          // Linked List states
+          nodes: result.value.nodes || undefined,
+          head: result.value.head !== undefined ? result.value.head : undefined,
+          // Binary Tree states
+          tree: result.value.tree !== undefined ? result.value.tree : (visualizationState.tree !== undefined ? visualizationState.tree : undefined),
+          traversal: result.value.traversal !== undefined ? result.value.traversal : (visualizationState.traversal !== undefined ? visualizationState.traversal : undefined),
+          // Common states
+          visited: result.value.visited !== undefined ? result.value.visited : (visualizationState.visited !== undefined ? visualizationState.visited : undefined),
+          current: result.value.current !== undefined ? result.value.current : (visualizationState.current !== undefined ? visualizationState.current : undefined),
+          message: result.value.message !== undefined ? result.value.message : (visualizationState.message !== undefined ? visualizationState.message : undefined),
         });
       }
     }, speed);
@@ -427,35 +584,65 @@ function App() {
               totalSwaps={totalSwaps}
             />
 
-            {/* Array Visualizer */}
-            <div className="w-full" style={{ transform: `scale(${zoomScale})`, transformOrigin: 'top center' }}>
-              <ArrayVisualizer
-                array={visualizationState.array.length > 0 ? visualizationState.array : array}
-                comparing={visualizationState.comparing}
-                sorted={visualizationState.sorted}
-                pivot={visualizationState.pivot}
-                merging={visualizationState.merging}
-                inserting={visualizationState.inserting}
-                partition={visualizationState.partition}
-                minIndex={visualizationState.minIndex}
-                heap={visualizationState.heap}
-                gap={visualizationState.gap}
-                counting={visualizationState.counting}
-                swapping={visualizationState.swapping || []}
-                previousArray={previousArrayRef.current}
-                target={visualizationState.target}
-                found={visualizationState.found}
-                left={visualizationState.left}
-                right={visualizationState.right}
-                mid={visualizationState.mid}
-                currentIndex={visualizationState.currentIndex}
-                stepCount={stepCount}
-                algorithmId={selectedAlgorithm}
-                startTime={startTime}
-                comparisons={totalComparisons}
-                totalSwaps={totalSwaps}
-              />
-            </div>
+            {/* Linked List Visualizer */}
+            {ALGORITHMS.find(algo => algo.id === selectedAlgorithm)?.type === 'linkedlist' && (
+              <div className="w-full">
+                <LinkedListVisualizer
+                  nodes={visualizationState.nodes || []}
+                  head={visualizationState.head !== undefined ? visualizationState.head : 0}
+                  current={visualizationState.current !== undefined ? visualizationState.current : null}
+                  comparing={visualizationState.comparing || []}
+                  message={visualizationState.message || ''}
+                />
+              </div>
+            )}
+
+            {/* Binary Tree Visualizer */}
+            {ALGORITHMS.find(algo => algo.id === selectedAlgorithm)?.type === 'tree' && (
+              <div className="w-full">
+                <BinaryTreeVisualizer
+                  tree={visualizationState.tree || null}
+                  visited={visualizationState.visited || []}
+                  current={visualizationState.current !== undefined ? visualizationState.current : null}
+                  comparing={visualizationState.comparing || []}
+                  message={visualizationState.message || ''}
+                  traversal={visualizationState.traversal || null}
+                />
+              </div>
+            )}
+
+            {/* Array Visualizer (for sort/search algorithms) */}
+            {ALGORITHMS.find(algo => algo.id === selectedAlgorithm)?.type !== 'linkedlist' && 
+             ALGORITHMS.find(algo => algo.id === selectedAlgorithm)?.type !== 'tree' && (
+              <div className="w-full" style={{ transform: `scale(${zoomScale})`, transformOrigin: 'top center' }}>
+                <ArrayVisualizer
+                  array={visualizationState.array.length > 0 ? visualizationState.array : array}
+                  comparing={visualizationState.comparing}
+                  sorted={visualizationState.sorted}
+                  pivot={visualizationState.pivot}
+                  merging={visualizationState.merging}
+                  inserting={visualizationState.inserting}
+                  partition={visualizationState.partition}
+                  minIndex={visualizationState.minIndex}
+                  heap={visualizationState.heap}
+                  gap={visualizationState.gap}
+                  counting={visualizationState.counting}
+                  swapping={visualizationState.swapping || []}
+                  previousArray={previousArrayRef.current}
+                  target={visualizationState.target}
+                  found={visualizationState.found}
+                  left={visualizationState.left}
+                  right={visualizationState.right}
+                  mid={visualizationState.mid}
+                  currentIndex={visualizationState.currentIndex}
+                  stepCount={stepCount}
+                  algorithmId={selectedAlgorithm}
+                  startTime={startTime}
+                  comparisons={totalComparisons}
+                  totalSwaps={totalSwaps}
+                />
+              </div>
+            )}
 
             <Controls
               isRunning={isRunning}

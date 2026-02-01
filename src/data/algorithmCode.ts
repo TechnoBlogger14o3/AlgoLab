@@ -861,6 +861,407 @@ void heapify(int arr[], int n, int i) {
     
     return visited;
 }`
+  },
+  'linkedlist-search': {
+    javascript: `function linkedListSearch(head, target) {
+  let current = head;
+  let index = 0;
+  
+  while (current !== null) {
+    if (current.value === target) {
+      return index;
+    }
+    current = current.next;
+    index++;
+  }
+  
+  return -1;
+}`,
+    python: `def linked_list_search(head, target):
+    current = head
+    index = 0
+    
+    while current is not None:
+        if current.value == target:
+            return index
+        current = current.next
+        index += 1
+    
+    return -1`,
+    java: `public static int linkedListSearch(ListNode head, int target) {
+    ListNode current = head;
+    int index = 0;
+    
+    while (current != null) {
+        if (current.value == target) {
+            return index;
+        }
+        current = current.next;
+        index++;
+    }
+    
+    return -1;
+}`,
+    cpp: `int linkedListSearch(ListNode* head, int target) {
+    ListNode* current = head;
+    int index = 0;
+    
+    while (current != nullptr) {
+        if (current->value == target) {
+            return index;
+        }
+        current = current->next;
+        index++;
+    }
+    
+    return -1;
+}`
+  },
+  'linkedlist-insert': {
+    javascript: `function linkedListInsertAtHead(head, value) {
+  const newNode = { value, next: head };
+  return newNode;
+}`,
+    python: `def linked_list_insert_at_head(head, value):
+    new_node = ListNode(value)
+    new_node.next = head
+    return new_node`,
+    java: `public static ListNode linkedListInsertAtHead(ListNode head, int value) {
+    ListNode newNode = new ListNode(value);
+    newNode.next = head;
+    return newNode;
+}`,
+    cpp: `ListNode* linkedListInsertAtHead(ListNode* head, int value) {
+    ListNode* newNode = new ListNode(value);
+    newNode->next = head;
+    return newNode;
+}`
+  },
+  'linkedlist-delete': {
+    javascript: `function linkedListDelete(head, value) {
+  if (head === null) return null;
+  
+  if (head.value === value) {
+    return head.next;
+  }
+  
+  let current = head;
+  while (current.next !== null) {
+    if (current.next.value === value) {
+      current.next = current.next.next;
+      return head;
+    }
+    current = current.next;
+  }
+  
+  return head;
+}`,
+    python: `def linked_list_delete(head, value):
+    if head is None:
+        return None
+    
+    if head.value == value:
+        return head.next
+    
+    current = head
+    while current.next is not None:
+        if current.next.value == value:
+            current.next = current.next.next
+            return head
+        current = current.next
+    
+    return head`,
+    java: `public static ListNode linkedListDelete(ListNode head, int value) {
+    if (head == null) return null;
+    
+    if (head.value == value) {
+        return head.next;
+    }
+    
+    ListNode current = head;
+    while (current.next != null) {
+        if (current.next.value == value) {
+            current.next = current.next.next;
+            return head;
+        }
+        current = current.next;
+    }
+    
+    return head;
+}`,
+    cpp: `ListNode* linkedListDelete(ListNode* head, int value) {
+    if (head == nullptr) return nullptr;
+    
+    if (head->value == value) {
+        ListNode* temp = head->next;
+        delete head;
+        return temp;
+    }
+    
+    ListNode* current = head;
+    while (current->next != nullptr) {
+        if (current->next->value == value) {
+            ListNode* temp = current->next;
+            current->next = current->next->next;
+            delete temp;
+            return head;
+        }
+        current = current->next;
+    }
+    
+    return head;
+}`
+  },
+  'linkedlist-reverse': {
+    javascript: `function linkedListReverse(head) {
+  let prev = null;
+  let current = head;
+  
+  while (current !== null) {
+    const next = current.next;
+    current.next = prev;
+    prev = current;
+    current = next;
+  }
+  
+  return prev;
+}`,
+    python: `def linked_list_reverse(head):
+    prev = None
+    current = head
+    
+    while current is not None:
+        next_node = current.next
+        current.next = prev
+        prev = current
+        current = next_node
+    
+    return prev`,
+    java: `public static ListNode linkedListReverse(ListNode head) {
+    ListNode prev = null;
+    ListNode current = head;
+    
+    while (current != null) {
+        ListNode next = current.next;
+        current.next = prev;
+        prev = current;
+        current = next;
+    }
+    
+    return prev;
+}`,
+    cpp: `ListNode* linkedListReverse(ListNode* head) {
+    ListNode* prev = nullptr;
+    ListNode* current = head;
+    
+    while (current != nullptr) {
+        ListNode* next = current->next;
+        current->next = prev;
+        prev = current;
+        current = next;
+    }
+    
+    return prev;
+}`
+  },
+  'tree-search': {
+    javascript: `function binaryTreeSearch(root, target) {
+  if (root === null) return false;
+  
+  if (root.value === target) return true;
+  
+  if (target < root.value) {
+    return binaryTreeSearch(root.left, target);
+  } else {
+    return binaryTreeSearch(root.right, target);
+  }
+}`,
+    python: `def binary_tree_search(root, target):
+    if root is None:
+        return False
+    
+    if root.value == target:
+        return True
+    
+    if target < root.value:
+        return binary_tree_search(root.left, target)
+    else:
+        return binary_tree_search(root.right, target)`,
+    java: `public static boolean binaryTreeSearch(TreeNode root, int target) {
+    if (root == null) return false;
+    
+    if (root.value == target) return true;
+    
+    if (target < root.value) {
+        return binaryTreeSearch(root.left, target);
+    } else {
+        return binaryTreeSearch(root.right, target);
+    }
+}`,
+    cpp: `bool binaryTreeSearch(TreeNode* root, int target) {
+    if (root == nullptr) return false;
+    
+    if (root->value == target) return true;
+    
+    if (target < root->value) {
+        return binaryTreeSearch(root->left, target);
+    } else {
+        return binaryTreeSearch(root->right, target);
+    }
+}`
+  },
+  'tree-inorder': {
+    javascript: `function inorderTraversal(root) {
+  const result = [];
+  
+  function traverse(node) {
+    if (node === null) return;
+    traverse(node.left);
+    result.push(node.value);
+    traverse(node.right);
+  }
+  
+  traverse(root);
+  return result;
+}`,
+    python: `def inorder_traversal(root):
+    result = []
+    
+    def traverse(node):
+        if node is None:
+            return
+        traverse(node.left)
+        result.append(node.value)
+        traverse(node.right)
+    
+    traverse(root)
+    return result`,
+    java: `public static List<Integer> inorderTraversal(TreeNode root) {
+    List<Integer> result = new ArrayList<>();
+    traverse(root, result);
+    return result;
+}
+
+private static void traverse(TreeNode node, List<Integer> result) {
+    if (node == null) return;
+    traverse(node.left, result);
+    result.add(node.value);
+    traverse(node.right, result);
+}`,
+    cpp: `vector<int> inorderTraversal(TreeNode* root) {
+    vector<int> result;
+    traverse(root, result);
+    return result;
+}
+
+void traverse(TreeNode* node, vector<int>& result) {
+    if (node == nullptr) return;
+    traverse(node->left, result);
+    result.push_back(node->value);
+    traverse(node->right, result);
+}`
+  },
+  'tree-preorder': {
+    javascript: `function preorderTraversal(root) {
+  const result = [];
+  
+  function traverse(node) {
+    if (node === null) return;
+    result.push(node.value);
+    traverse(node.left);
+    traverse(node.right);
+  }
+  
+  traverse(root);
+  return result;
+}`,
+    python: `def preorder_traversal(root):
+    result = []
+    
+    def traverse(node):
+        if node is None:
+            return
+        result.append(node.value)
+        traverse(node.left)
+        traverse(node.right)
+    
+    traverse(root)
+    return result`,
+    java: `public static List<Integer> preorderTraversal(TreeNode root) {
+    List<Integer> result = new ArrayList<>();
+    traverse(root, result);
+    return result;
+}
+
+private static void traverse(TreeNode node, List<Integer> result) {
+    if (node == null) return;
+    result.add(node.value);
+    traverse(node.left, result);
+    traverse(node.right, result);
+}`,
+    cpp: `vector<int> preorderTraversal(TreeNode* root) {
+    vector<int> result;
+    traverse(root, result);
+    return result;
+}
+
+void traverse(TreeNode* node, vector<int>& result) {
+    if (node == nullptr) return;
+    result.push_back(node->value);
+    traverse(node->left, result);
+    traverse(node->right, result);
+}`
+  },
+  'tree-postorder': {
+    javascript: `function postorderTraversal(root) {
+  const result = [];
+  
+  function traverse(node) {
+    if (node === null) return;
+    traverse(node.left);
+    traverse(node.right);
+    result.push(node.value);
+  }
+  
+  traverse(root);
+  return result;
+}`,
+    python: `def postorder_traversal(root):
+    result = []
+    
+    def traverse(node):
+        if node is None:
+            return
+        traverse(node.left)
+        traverse(node.right)
+        result.append(node.value)
+    
+    traverse(root)
+    return result`,
+    java: `public static List<Integer> postorderTraversal(TreeNode root) {
+    List<Integer> result = new ArrayList<>();
+    traverse(root, result);
+    return result;
+}
+
+private static void traverse(TreeNode node, List<Integer> result) {
+    if (node == null) return;
+    traverse(node.left, result);
+    traverse(node.right, result);
+    result.add(node.value);
+}`,
+    cpp: `vector<int> postorderTraversal(TreeNode* root) {
+    vector<int> result;
+    traverse(root, result);
+    return result;
+}
+
+void traverse(TreeNode* node, vector<int>& result) {
+    if (node == nullptr) return;
+    traverse(node->left, result);
+    traverse(node->right, result);
+    result.push_back(node->value);
+}`
   }
 };
 
