@@ -53,7 +53,9 @@ Experience the interactive visualizer with all algorithms and data structures!
 
 ### Video Demo
 
-https://github.com/user-attachments/assets/demo.mov
+Watch the full demo video: [`demo.mov`](./src/screenshots/demo.mov)
+
+*Note: The demo video showcases all features including sorting algorithms, search algorithms, linked list operations, and binary tree visualizations.*
 
 ### Screenshots
 
