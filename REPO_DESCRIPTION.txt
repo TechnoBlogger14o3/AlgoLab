@@ -1,0 +1,1 @@
+Interactive DSA Visualizer - Visualize 18+ algorithms (sorting, searching, linked lists, binary trees) with real-time code animation, step-by-step execution, and performance statistics. Built with React, TypeScript, and Framer Motion.
