@@ -9,6 +9,7 @@ import StatisticsPanel from './components/StatisticsPanel';
 import ELectureMode from './components/ELectureMode';
 import ComparisonMode from './components/ComparisonMode';
 import ZoomControls from './components/ZoomControls';
+import CodingProblems from './components/CodingProblems';
 import { generateRandomArray, generateSortedArray, generateReversedArray, generateNearlySortedArray } from './utils/arrayUtils';
 import { bubbleSort } from './algorithms/bubbleSort';
 import { quickSort } from './algorithms/quickSort';
@@ -66,6 +67,7 @@ function App() {
   const [totalSwaps, setTotalSwaps] = useState<number>(0);
   const [isELectureOpen, setIsELectureOpen] = useState<boolean>(false);
   const [isComparisonOpen, setIsComparisonOpen] = useState<boolean>(false);
+  const [isCodingProblemsOpen, setIsCodingProblemsOpen] = useState<boolean>(false);
   const zoomScale = 1.0; // Fixed at 1.0x
   const [visualizationState, setVisualizationState] = useState<AlgorithmState>({
     array: [],
@@ -509,6 +511,15 @@ function App() {
     };
   }, []);
 
+  // Show coding problems view if open (full screen)
+  if (isCodingProblemsOpen) {
+    return (
+      <CodingProblems
+        onBack={() => setIsCodingProblemsOpen(false)}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-950 text-white">
       <div className="container mx-auto px-4 py-4 max-w-[1600px]">
@@ -533,6 +544,12 @@ function App() {
                 className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-blue-600 text-white font-semibold rounded-lg shadow-lg hover:from-indigo-600 hover:to-blue-700 transition-all"
               >
                 🔀 Compare
+              </button>
+              <button
+                onClick={() => setIsCodingProblemsOpen(true)}
+                className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold rounded-lg shadow-lg hover:from-green-600 hover:to-emerald-700 transition-all"
+              >
+                💻 Coding Problems
               </button>
             </div>
 
