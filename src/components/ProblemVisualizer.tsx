@@ -2,12 +2,16 @@ import { useEffect, useState } from 'react';
 import { Problem } from '../data/blind75Problems';
 import { Language } from '../types';
 import ArrayVisualizer from './ArrayVisualizer';
+import HashMapVisualizer from './HashMapVisualizer';
+import { ExecutionStep } from '../utils/problemExecutor';
 
 interface ProblemVisualizerProps {
   problem: Problem;
   code: string;
   language: Language;
   testCase: { input: Record<string, unknown>; expectedOutput: unknown };
+  executionSteps?: ExecutionStep[];
+  currentStep?: number;
 }
 
 export default function ProblemVisualizer({
@@ -15,12 +19,18 @@ export default function ProblemVisualizer({
   code,
   language,
   testCase,
+  executionSteps,
+  currentStep,
 }: ProblemVisualizerProps) {
   const [visualizationData, setVisualizationData] = useState<{
     array?: number[];
     comparing?: number[];
     sorted?: number[];
     message?: string;
+    map?: Map<number, number>;
+    currentIndex?: number;
+    result?: number[];
+    found?: boolean;
   }>({});
 
   useEffect(() => {
@@ -45,10 +55,32 @@ export default function ProblemVisualizer({
         array,
         comparing: [],
         sorted: [],
-        message: `Visualizing: ${problem.title}`,
+        message: executionSteps && executionSteps.length > 0 
+          ? 'Click "Run Tests" to see visualization' 
+          : `Visualizing: ${problem.title}`,
       });
     }
-  }, [problem, testCase]);
+  }, [problem, testCase, executionSteps]);
+
+  // Update visualization when execution steps change
+  useEffect(() => {
+    if (executionSteps && executionSteps.length > 0) {
+      const stepIndex = currentStep !== undefined && currentStep >= 0 ? currentStep : 0;
+      const step = executionSteps[stepIndex];
+      if (step) {
+        setVisualizationData(prev => ({
+          array: step.array || prev.array || [],
+          comparing: step.comparing || [],
+          sorted: [],
+          message: step.message,
+          map: step.map,
+          currentIndex: step.currentIndex,
+          result: step.result,
+          found: step.found,
+        }));
+      }
+    }
+  }, [executionSteps, currentStep]);
 
   if (!visualizationData.array || visualizationData.array.length === 0) {
     return (
@@ -59,12 +91,34 @@ export default function ProblemVisualizer({
     );
   }
 
+  const isTwoSum = problem.id === 'two-sum';
+  const hasMap = visualizationData.map && visualizationData.map.size > 0;
+
   return (
     <div className="space-y-4">
       {visualizationData.message && (
-        <div className="bg-blue-900/50 border border-blue-600/50 rounded-lg p-3">
-          <p className="text-white text-sm">{visualizationData.message}</p>
+        <div className={`rounded-lg p-3 border ${
+          visualizationData.found 
+            ? 'bg-green-900/50 border-green-600/50' 
+            : visualizationData.result
+            ? 'bg-red-900/50 border-red-600/50'
+            : 'bg-blue-900/50 border-blue-600/50'
+        }`}>
+          <p className="text-white text-sm font-medium">{visualizationData.message}</p>
         </div>
+      )}
+
+      {isTwoSum && hasMap && (
+        <HashMapVisualizer
+          map={visualizationData.map!}
+          currentKey={visualizationData.currentIndex !== undefined 
+            ? visualizationData.array[visualizationData.currentIndex] 
+            : undefined}
+          currentValue={visualizationData.currentIndex}
+          highlightKey={visualizationData.comparing && visualizationData.comparing.length > 0
+            ? visualizationData.array[visualizationData.comparing[0]]
+            : undefined}
+        />
       )}
 
       <div className="bg-gray-900 rounded-lg p-4">
@@ -72,8 +126,26 @@ export default function ProblemVisualizer({
           array={visualizationData.array}
           comparing={visualizationData.comparing}
           sorted={visualizationData.sorted}
+          currentIndex={visualizationData.currentIndex}
+          target={isTwoSum ? (testCase.input.target as number) : undefined}
+          found={visualizationData.found}
         />
       </div>
+
+      {visualizationData.result && (
+        <div className={`rounded-lg p-3 border ${
+          visualizationData.found 
+            ? 'bg-green-900/50 border-green-600/50' 
+            : 'bg-red-900/50 border-red-600/50'
+        }`}>
+          <div className="text-white text-sm font-semibold mb-1">
+            {visualizationData.found ? '✓ Solution Found!' : '✗ No Solution Found'}
+          </div>
+          <div className="text-gray-300 text-xs font-mono">
+            Result: [{visualizationData.result.join(', ')}]
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-4 text-sm">
         <div className="bg-gray-700/50 rounded-lg p-3">

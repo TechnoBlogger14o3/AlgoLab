@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import Editor, { OnMount } from '@monaco-editor/react';
+import type * as monaco from 'monaco-editor';
 import { BLIND_75_PROBLEMS, Problem } from '../data/blind75Problems';
 import { Language } from '../types';
-import CodeEditor from './CodeEditor';
 import ProblemVisualizer from './ProblemVisualizer';
+import { executeProblemCode, ExecutionStep } from '../utils/problemExecutor';
 
 interface CodingProblemsProps {
   onBack?: () => void;
@@ -19,18 +21,53 @@ export default function CodingProblems({ onBack }: CodingProblemsProps) {
     expected: unknown;
     actual: unknown;
   }> | null>(null);
+  const [executionSteps, setExecutionSteps] = useState<ExecutionStep[]>([]);
+  const [currentStep, setCurrentStep] = useState<number>(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
 
   const getDefaultCode = () => {
     return selectedProblem.functionSignature[language] || selectedProblem.functionSignature.javascript;
   };
 
-  const handleCodeChange = (newCode: string) => {
+  const handleLanguageChange = (newLanguage: Language) => {
+    setLanguage(newLanguage);
+    const newCode = selectedProblem.functionSignature[newLanguage] || selectedProblem.functionSignature.javascript;
     setCode(newCode);
   };
 
-  const handleLanguageChange = (newLanguage: Language) => {
-    setLanguage(newLanguage);
-    setCode(getDefaultCode());
+  const getMonacoLanguage = (lang: Language): string => {
+    const langMap: Record<Language, string> = {
+      javascript: 'javascript',
+      python: 'python',
+      java: 'java',
+      cpp: 'cpp'
+    };
+    return langMap[lang] || 'javascript';
+  };
+
+  const handleEditorDidMount: OnMount = (editor, monaco) => {
+    editorRef.current = editor;
+    
+    // Configure editor
+    editor.updateOptions({
+      fontSize: 14,
+      minimap: { enabled: false },
+      scrollBeyondLastLine: false,
+      automaticLayout: true,
+      lineNumbers: 'on',
+      roundedSelection: false,
+      cursorStyle: 'line',
+      wordWrap: 'on',
+      tabSize: 2,
+      insertSpaces: true,
+      formatOnPaste: true,
+      formatOnType: true,
+    });
+  };
+
+  const handleEditorChange = (value: string | undefined) => {
+    setCode(value || '');
   };
 
   const handleProblemSelect = (problem: Problem) => {
@@ -39,34 +76,78 @@ export default function CodingProblems({ onBack }: CodingProblemsProps) {
     setTestResults(null);
   };
 
-  const runTests = () => {
+  const runTests = async () => {
     setIsRunning(true);
     setTestResults(null);
+    setExecutionSteps([]);
+    setCurrentStep(0);
+    setIsAnimating(true);
 
-    // Simulate test execution
-    setTimeout(() => {
-      const results = selectedProblem.testCases.map((testCase) => {
-        try {
-          // Execute user code (simplified - in production, use a sandbox)
-          // For now, we'll just show the test cases
-          return {
-            passed: false, // Will be determined by actual execution
-            input: testCase.input,
-            expected: testCase.expectedOutput,
-            actual: null,
-          };
-        } catch (error) {
-          return {
-            passed: false,
-            input: testCase.input,
-            expected: testCase.expectedOutput,
-            actual: `Error: ${error}`,
-          };
-        }
-      });
+    try {
+      let firstTestSteps: ExecutionStep[] = [];
+
+      const results = await Promise.all(
+        selectedProblem.testCases.map(async (testCase, index) => {
+          try {
+            // Execute user code and get visualization steps
+            const executionResult = await executeProblemCode(
+              selectedProblem.id,
+              code || getDefaultCode(),
+              language,
+              testCase
+            );
+
+            // For the first test case, use its execution steps for visualization
+            if (index === 0 && executionResult.steps.length > 0) {
+              firstTestSteps = executionResult.steps;
+            }
+
+            return {
+              passed: executionResult.passed,
+              input: testCase.input,
+              expected: testCase.expectedOutput,
+              actual: executionResult.actual,
+              error: executionResult.error,
+            };
+          } catch (error) {
+            return {
+              passed: false,
+              input: testCase.input,
+              expected: testCase.expectedOutput,
+              actual: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            };
+          }
+        })
+      );
+
       setTestResults(results);
+      setExecutionSteps(firstTestSteps);
+
+      // Animate through visualization steps
+      if (firstTestSteps.length > 0) {
+        setCurrentStep(0);
+        let stepIndex = 0;
+        const interval = setInterval(() => {
+          stepIndex++;
+          if (stepIndex < firstTestSteps.length) {
+            setCurrentStep(stepIndex);
+          } else {
+            clearInterval(interval);
+            setIsAnimating(false);
+          }
+        }, 800); // 800ms per step
+
+        // Store interval ID for cleanup
+        return () => clearInterval(interval);
+      } else {
+        setIsAnimating(false);
+      }
+    } catch (error) {
+      console.error('Error running tests:', error);
+      setIsAnimating(false);
+    } finally {
       setIsRunning(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -88,9 +169,9 @@ export default function CodingProblems({ onBack }: CodingProblemsProps) {
           )}
         </div>
 
-        <div className="grid grid-cols-12 gap-4 h-[calc(100vh-180px)]">
+        <div className="grid grid-cols-12 gap-4" style={{ height: 'calc(100vh - 180px)' }}>
           {/* Left Panel - Problem List & Description */}
-          <div className="col-span-3 flex flex-col gap-4">
+          <div className="col-span-3 flex flex-col gap-4 overflow-hidden">
             {/* Problem List */}
             <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
               <h2 className="text-white font-semibold mb-3">Problems</h2>
@@ -200,78 +281,104 @@ export default function CodingProblems({ onBack }: CodingProblemsProps) {
               </div>
             </div>
             <div className="flex-1 overflow-hidden">
-              <CodeEditor
-                code={code || getDefaultCode()}
-                language={language}
-                onChange={handleCodeChange}
+              <Editor
+                height="100%"
+                language={getMonacoLanguage(language)}
+                value={code || getDefaultCode()}
+                onChange={handleEditorChange}
+                onMount={handleEditorDidMount}
+                theme="vs-dark"
+                options={{
+                  fontSize: 14,
+                  minimap: { enabled: false },
+                  scrollBeyondLastLine: false,
+                  automaticLayout: true,
+                  lineNumbers: 'on',
+                  roundedSelection: false,
+                  cursorStyle: 'line',
+                  wordWrap: 'on',
+                  tabSize: 2,
+                  insertSpaces: true,
+                  formatOnPaste: true,
+                  formatOnType: true,
+                }}
               />
             </div>
           </div>
 
-          {/* Right Side Panel - Test Results */}
-          <div className="col-span-4 flex flex-col bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
-            <div className="p-4 border-b border-gray-700">
-              <h2 className="text-white font-semibold">Test Results</h2>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4">
-              {testResults === null ? (
-                <div className="text-gray-400 text-center mt-8">
-                  Click "Run Tests" to execute your solution
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {testResults.map((result, idx) => (
-                    <div
-                      key={idx}
-                      className={`p-3 rounded-lg border-2 ${
-                        result.passed
-                          ? 'bg-green-500/10 border-green-500/50'
-                          : 'bg-red-500/10 border-red-500/50'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-white font-medium text-sm">Test Case {idx + 1}</span>
-                        <span
-                          className={`text-xs font-bold ${
-                            result.passed ? 'text-green-400' : 'text-red-400'
-                          }`}
-                        >
-                          {result.passed ? '✓ PASSED' : '✗ FAILED'}
-                        </span>
-                      </div>
-                      <div className="text-xs space-y-1">
-                        <div className="text-gray-400">
-                          <span className="text-blue-400">Input:</span>{' '}
-                          {JSON.stringify(result.input)}
+          {/* Right Side Panel - Test Results & Visualization */}
+          <div className="col-span-4 flex flex-col gap-4 overflow-hidden">
+            {/* Test Results */}
+            <div className="flex flex-col bg-gray-800 rounded-xl border border-gray-700 overflow-hidden" style={{ flex: '0 0 50%' }}>
+              <div className="p-4 border-b border-gray-700">
+                <h2 className="text-white font-semibold">Test Results</h2>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4">
+                {testResults === null ? (
+                  <div className="text-gray-400 text-center mt-8">
+                    Click "Run Tests" to execute your solution
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {testResults.map((result, idx) => (
+                      <div
+                        key={idx}
+                        className={`p-3 rounded-lg border-2 ${
+                          result.passed
+                            ? 'bg-green-500/10 border-green-500/50'
+                            : 'bg-red-500/10 border-red-500/50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-white font-medium text-sm">Test Case {idx + 1}</span>
+                          <span
+                            className={`text-xs font-bold ${
+                              result.passed ? 'text-green-400' : 'text-red-400'
+                            }`}
+                          >
+                            {result.passed ? '✓ PASSED' : '✗ FAILED'}
+                          </span>
                         </div>
-                        <div className="text-gray-400">
-                          <span className="text-green-400">Expected:</span>{' '}
-                          {JSON.stringify(result.expected)}
-                        </div>
-                        {result.actual !== null && (
+                        <div className="text-xs space-y-1">
                           <div className="text-gray-400">
-                            <span className="text-yellow-400">Got:</span>{' '}
-                            {JSON.stringify(result.actual)}
+                            <span className="text-blue-400">Input:</span>{' '}
+                            {JSON.stringify(result.input)}
                           </div>
-                        )}
+                          <div className="text-gray-400">
+                            <span className="text-green-400">Expected:</span>{' '}
+                            {JSON.stringify(result.expected)}
+                          </div>
+                          {result.actual !== null && (
+                            <div className="text-gray-400">
+                              <span className="text-yellow-400">Got:</span>{' '}
+                              {JSON.stringify(result.actual)}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Visualization */}
+            <div className="flex flex-col bg-gray-800 rounded-xl border border-gray-700 overflow-hidden flex-1">
+              <div className="p-4 border-b border-gray-700">
+                <h2 className="text-white font-semibold">Visualization</h2>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4">
+                <ProblemVisualizer
+                  problem={selectedProblem}
+                  code={code || getDefaultCode()}
+                  language={language}
+                  testCase={selectedProblem.testCases[0]}
+                  executionSteps={executionSteps}
+                  currentStep={currentStep}
+                />
+              </div>
             </div>
           </div>
-        </div>
-
-        {/* Bottom Panel - Visualization */}
-        <div className="mt-4 bg-gray-800 rounded-xl border border-gray-700 p-4">
-          <h2 className="text-white font-semibold mb-3">Visualization</h2>
-          <ProblemVisualizer
-            problem={selectedProblem}
-            code={code || getDefaultCode()}
-            language={language}
-            testCase={selectedProblem.testCases[0]}
-          />
         </div>
       </div>
     </div>

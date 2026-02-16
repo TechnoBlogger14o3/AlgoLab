@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import ArrayVisualizer from './ArrayVisualizer';
 import CodeDisplay from './CodeDisplay';
 import StatisticsPanel from './StatisticsPanel';
@@ -168,6 +168,15 @@ export default function ComparisonMode({ algorithms, array, onClose }: Compariso
       }
     }, 500);
   };
+
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, []);
   
   return (
     <div className="fixed inset-0 bg-black/90 z-50 p-4 overflow-y-auto">
